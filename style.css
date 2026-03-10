@@ -1315,3 +1315,187 @@ header h1 {
         transform: scale(1);
     }
 }
+/* 🕹️ Retro Boss Fight Overlay 🕹️ */
+#boss-fight-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 11000;
+    backdrop-filter: blur(15px);
+}
+
+#boss-fight-panel {
+    background: #000;
+    border: 4px solid #ff00ff;
+    padding: 2rem;
+    width: 95%;
+    max-width: 550px;
+    text-align: center;
+    box-shadow: 0 0 30px #ff00ff, inset 0 0 10px #ff00ff;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    position: relative;
+    overflow: hidden;
+}
+
+#boss-fight-panel::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.15) 0px,
+        rgba(0, 0, 0, 0.15) 1px,
+        transparent 1px,
+        transparent 2px
+    );
+    pointer-events: none;
+}
+
+#boss-fight-header {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 2px solid #00ffff;
+    padding-bottom: 1rem;
+    margin-bottom: 2rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-shadow: 0 0 10px #00ffff;
+}
+
+#boss-demo-type {
+    color: #00ffff;
+}
+
+#boss-complexity {
+    color: #ffcc00;
+}
+
+#boss-battle-board {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin: 2rem 0;
+}
+
+.boss-character-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.boss-character {
+    font-size: 5rem;
+    margin-bottom: 1rem;
+    animation: retroFloat 2s ease-in-out infinite;
+}
+
+@keyframes retroFloat {
+    0%, 100% { transform: translateY(0) scale(1.05); }
+    50% { transform: translateY(-15px) scale(0.95); }
+}
+
+.boss-vs {
+    font-size: 3rem;
+    font-weight: 900;
+    color: #ff0000;
+    text-shadow: 2px 2px #550000;
+    animation: vsPulse 0.5s step-end infinite;
+}
+
+@keyframes vsPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.2); }
+}
+
+#boss-modifiers {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.boss-mod {
+    background: #222;
+    padding: 0.5rem 1rem;
+    border: 2px solid #444;
+}
+
+.mod-label {
+    font-size: 0.8rem;
+    color: #888;
+    margin-right: 0.5rem;
+}
+
+#boss-skill-mod, #boss-prep-mod {
+    color: #00ff00;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+#boss-roll-area {
+    margin-bottom: 1.5rem;
+    height: 80px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#boss-roll-result {
+    font-size: 4rem;
+    font-weight: 900;
+    color: #00ff00;
+    text-shadow: 0 0 15px #00ff00;
+}
+
+#boss-roll-btn {
+    background: #ff00ff;
+    color: #fff;
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 1.5rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 4px 4px 0 #880088;
+    transition: all 0.1s;
+}
+
+#boss-roll-btn:hover {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0 #880088;
+}
+
+#boss-message {
+    font-family: var(--font-hand);
+    font-size: 1.5rem;
+    color: #ffcc00;
+}
+
+/* Animations for results */
+.boss-success {
+    animation: successFlash 0.3s step-end infinite;
+}
+
+@keyframes successFlash {
+    0% { border-color: #00ff00; box-shadow: 0 0 30px #00ff00; }
+    50% { border-color: #fff; box-shadow: 0 0 50px #fff; }
+}
+
+.boss-failure {
+    animation: failureShake 0.4s ease-in-out;
+}
+
+@keyframes failureShake {
+    0%, 100% { transform: translateX(0); border-color: #ff0000; }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}

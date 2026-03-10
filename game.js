@@ -146,6 +146,26 @@ const AudioEngine = {
             setTimeout(() => this.playTone(f, 'sawtooth', 1.2, 0.04), i * 40);
         });
     },
+    bossInterval: null,
+    startBossMusic() {
+        if (!this.ctx) this.init();
+        if (this.bossInterval) return;
+
+        let step = 0;
+        const melody = [110, 130, 110, 146, 110, 164, 110, 146]; // Fast repetitive bass
+        this.bossInterval = setInterval(() => {
+            const freq = melody[step % melody.length];
+            this.playTone(freq, 'sawtooth', 0.15, 0.05);
+            if (step % 4 === 0) this.playTone(freq * 2, 'square', 0.1, 0.02);
+            step++;
+        }, 150);
+    },
+    stopBossMusic() {
+        if (this.bossInterval) {
+            clearInterval(this.bossInterval);
+            this.bossInterval = null;
+        }
+    },
     kickOut() {
         // Discordant "crash" slide
         this.init();
@@ -209,7 +229,8 @@ let gameState = {
     // End Game Stats
     demosDelivered: 0,
     lunchesEaten: 0,
-    coffeesDrunk: 0
+    coffeesDrunk: 0,
+    currentBossFight: null
 };
 
 const boardEl = document.getElementById('planner-board');
@@ -637,6 +658,8 @@ function checkGameState() {
 
             // Allow rolling again immediately if energy allows
             if (gameState.energy > 0) rollBtn.disabled = false;
+        } else if (cardData.type === 'demo') {
+            startBossFight(cardData, pos);
         } else {
             showCinematicCard(pos);
         }
@@ -837,28 +860,7 @@ function showCinematicCard(squareIdx) {
                     updateEvent("Discovery Phase", `Product knowledge increased! Prep +3`);
                 }
 
-                // Demo resolution
-                if (cardData.type === 'demo') {
-                    const demoType = cardData.label.split(' ')[0]; // CX, EX, MR
-                    const roll = Math.floor(Math.random() * 6) + 1;
-                    const total = roll + gameState.prep;
-                    const success = total >= 5;
-
-                    if (success) {
-                        gameState[demoType.toLowerCase()] = Math.max(-5, Math.min(5, gameState[demoType.toLowerCase()] + 2));
-                        gameState.experience += 10;
-                        gameState.demosDelivered++;
-                        updateEvent("Demo SUCCESS!", `Roll: ${roll} (+${gameState.prep} Prep). +10 EXP, +2 ${demoType}`);
-                        AudioEngine.happyChord();
-                    } else {
-                        updateEvent("Demo Failure...", `Roll: ${roll} (+${gameState.prep} Prep). Technical issues or lack of prep. No skill gain.`);
-                        AudioEngine.fail();
-                    }
-
-                    // Reset discovery state and consumed prep
-                    gameState.prep = 0;
-                    updateUI();
-                }
+                // Removed Demo resolution from here as it now triggers immediately in checkGameState
 
                 gameState.usedCards.push(squareIdx);
                 // If it's a multi-hour meeting, mark the other half as used too
@@ -872,6 +874,117 @@ function showCinematicCard(squareIdx) {
             }, 600);
         }
     };
+}
+
+function startBossFight(cardData, squareIdx) {
+    const demoType = cardData.label.split(' ')[0]; // CX, EX, MR
+
+    // Apply energy cost during boss fight start
+    if (cardData.energy) {
+        gameState.energy = Math.max(0, gameState.energy + cardData.energy);
+        updateEvent("Energy Drain", `Boss Battle! Lost ${Math.abs(cardData.energy)} Vitality.`);
+    }
+
+    const complexities = [
+        { label: 'EASY', value: 4, color: '#00ff00' },
+        { label: 'MID', value: 6, color: '#ffcc00' },
+        { label: 'HARD', value: 8, color: '#ff0000' }
+    ];
+    const complexity = complexities[Math.floor(Math.random() * complexities.length)];
+    const skillMod = gameState[demoType.toLowerCase()] || 0;
+
+    gameState.currentBossFight = {
+        type: demoType,
+        complexity: complexity.value,
+        squareIdx: squareIdx
+    };
+
+    // UI Updates
+    document.getElementById('boss-demo-type').textContent = `${demoType} DEMO`;
+    document.getElementById('boss-complexity-value').textContent = complexity.label;
+    document.getElementById('boss-complexity-value').style.color = complexity.color;
+    document.getElementById('boss-skill-mod').textContent = (skillMod >= 0 ? '+' : '') + skillMod;
+    document.getElementById('boss-prep-mod').textContent = `+${gameState.prep}`;
+    document.getElementById('boss-roll-result').classList.add('hidden');
+    document.getElementById('boss-roll-btn').classList.remove('hidden');
+    document.getElementById('boss-roll-btn').disabled = false;
+    document.getElementById('boss-fight-panel').classList.remove('boss-success', 'boss-failure');
+    document.getElementById('boss-message').textContent = "A wild stakeholder appears!";
+
+    // Transition overlays
+    cardOverlay.classList.add('hidden');
+    document.getElementById('boss-fight-overlay').classList.remove('hidden');
+
+    AudioEngine.startBossMusic();
+}
+
+function executeBossRoll() {
+    if (!gameState.currentBossFight) return;
+    const { type, complexity, squareIdx } = gameState.currentBossFight;
+    const skillMod = gameState[type.toLowerCase()] || 0;
+    const rollBtn = document.getElementById('boss-roll-btn');
+    const resultEl = document.getElementById('boss-roll-result');
+    const messageEl = document.getElementById('boss-message');
+    const panel = document.getElementById('boss-fight-panel');
+
+    rollBtn.disabled = true;
+    rollBtn.classList.add('hidden');
+    AudioEngine.roll();
+
+    // Visual roll animation
+    let count = 0;
+    const interval = setInterval(() => {
+        resultEl.textContent = Math.floor(Math.random() * 6) + 1;
+        resultEl.classList.remove('hidden');
+        count++;
+        if (count > 10) {
+            clearInterval(interval);
+            finalizeBossFight(type, complexity, squareIdx, skillMod);
+        }
+    }, 80);
+}
+
+function finalizeBossFight(type, complexity, squareIdx, skillMod) {
+    const roll = Math.floor(Math.random() * 6) + 1;
+    const total = roll + skillMod + gameState.prep;
+    const success = total >= complexity;
+
+    const resultEl = document.getElementById('boss-roll-result');
+    const messageEl = document.getElementById('boss-message');
+    const panel = document.getElementById('boss-fight-panel');
+
+    resultEl.textContent = roll;
+
+    setTimeout(() => {
+        AudioEngine.stopBossMusic();
+        if (success) {
+            panel.classList.add('boss-success');
+            messageEl.textContent = "DEMO SUCCESS! Deals Closed!";
+            AudioEngine.happyChord();
+
+            gameState[type.toLowerCase()] = Math.max(-5, Math.min(5, (gameState[type.toLowerCase()] || 0) + 2));
+            gameState.experience += 10;
+            gameState.demosDelivered++;
+            updateEvent("Boss Victory!", `Roll: ${roll} + ${skillMod} (Skill) + ${gameState.prep} (Prep) = ${total} (vs ${complexity}). +10 EXP, +2 ${type}`);
+        } else {
+            panel.classList.add('boss-failure');
+            messageEl.textContent = "DEMO FAILURE... No follow up.";
+            AudioEngine.fail();
+            updateEvent("Boss Defeat...", `Roll: ${roll} + ${skillMod} (Skill) + ${gameState.prep} (Prep) = ${total} (vs ${complexity}).`);
+        }
+
+        gameState.prep = 0;
+        updateUI();
+
+        // Close after a delay
+        setTimeout(() => {
+            document.getElementById('boss-fight-overlay').classList.add('hidden');
+            gameState.usedCards.push(squareIdx);
+            gameState.currentBossFight = null;
+            initBoard();
+            checkGameState();
+        }, 2000);
+    }, 500);
 }
 
 async function runStartupSequence() {
@@ -1163,4 +1276,9 @@ document.addEventListener('DOMContentLoaded', () => {
         startOverlay.classList.add('hidden');
         runStartupSequence();
     });
+
+    const playBtn = document.getElementById('boss-roll-btn');
+    if (playBtn) {
+        playBtn.addEventListener('click', executeBossRoll);
+    }
 });

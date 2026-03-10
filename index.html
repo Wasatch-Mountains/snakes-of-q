@@ -118,6 +118,39 @@
             </div>
         </main>
     </div> <!-- /app -->
+    <!-- Boss Fight Overlay -->
+    <div id="boss-fight-overlay" class="hidden">
+        <div id="boss-fight-panel">
+            <div id="boss-fight-header">
+                <div id="boss-demo-type">CX DEMO</div>
+                <div id="boss-complexity">COMPLEXITY: <span id="boss-complexity-value">HARD</span></div>
+            </div>
+
+            <div id="boss-battle-board">
+                <div class="boss-character-area">
+                    <div class="boss-character" id="se-boss-char">👨‍💻</div>
+                    <div class="boss-label">YOU</div>
+                </div>
+                <div class="boss-vs">VS</div>
+                <div class="boss-character-area">
+                    <div class="boss-character" id="customer-boss-char">🏢</div>
+                    <div class="boss-label">CUSTOMER</div>
+                </div>
+            </div>
+
+            <div id="boss-modifiers">
+                <div class="boss-mod"><span class="mod-label">SKILL</span> <span id="boss-skill-mod">+2</span></div>
+                <div class="boss-mod"><span class="mod-label">PREP</span> <span id="boss-prep-mod">+1</span></div>
+            </div>
+
+            <div id="boss-roll-area">
+                <div id="boss-roll-result" class="hidden">?</div>
+                <button id="boss-roll-btn">READY TO DEMO?</button>
+            </div>
+
+            <div id="boss-message">A wild stakeholder appears!</div>
+        </div>
+    </div>
 
 
     <!-- End of Game Summary Overlay -->
