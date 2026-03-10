@@ -35,9 +35,9 @@ const CONFIG = {
         { type: 'demo', label: 'EX demo', color: 'red', value: 'Live Showcase (2h) (Energy -2)', energy: -2, duration: 2 },
         { type: 'demo', label: 'MR demo', color: 'red', value: 'Live Showcase (Energy -2)', energy: -2 },
         { type: 'demo', label: 'CX demo', color: 'red', value: 'Live Showcase (2h) (Energy -2)', energy: -2, duration: 2 },
-        { type: 'discovery', label: 'CX discovery', color: 'discovery', value: 'Prep +3 Demo Bonus (Energy -1)', energy: -1, discoveryFor: 'CX' },
-        { type: 'discovery', label: 'EX discovery', color: 'discovery', value: 'Prep +3 Demo Bonus (Energy -1)', energy: -1, discoveryFor: 'EX' },
-        { type: 'discovery', label: 'MR discovery', color: 'discovery', value: 'Prep +3 Demo Bonus (Energy -1)', energy: -1, discoveryFor: 'MR' }
+        { type: 'discovery', label: 'CX discovery', color: 'discovery', value: 'Prep +3 Demo Bonus', energy: 0, discoveryFor: 'CX' },
+        { type: 'discovery', label: 'EX discovery', color: 'discovery', value: 'Prep +3 Demo Bonus', energy: 0, discoveryFor: 'EX' },
+        { type: 'discovery', label: 'MR discovery', color: 'discovery', value: 'Prep +3 Demo Bonus', energy: 0, discoveryFor: 'MR' }
     ],
     CARDS: {}, // Populated dynamically
     LUNCH_IMAGE: 'art_nouveau_lunch.png',
@@ -205,7 +205,6 @@ let gameState = {
     gameOver: false,
     usedCards: [],
     visibleCards: [],
-    discoveryState: { 'CX': false, 'EX': false, 'MR': false },
     placementLog: {}, // Records { originalIdx: { finalIdx: N, type: 'lunch'|'coffee', icon: 'emoji' } },
     // End Game Stats
     demosDelivered: 0,
@@ -834,23 +833,22 @@ function showCinematicCard(squareIdx) {
 
                 // Discovery resolution
                 if (cardData.type === 'discovery') {
-                    gameState.discoveryState[cardData.discoveryFor] = true;
-                    updateEvent("Discovery Phase", `${cardData.discoveryFor} demo success chance significantly increased!`);
+                    gameState.prep += 3;
+                    updateEvent("Discovery Phase", `Product knowledge increased! Prep +3`);
                 }
 
                 // Demo resolution
                 if (cardData.type === 'demo') {
                     const demoType = cardData.label.split(' ')[0]; // CX, EX, MR
-                    const hasDiscovery = gameState.discoveryState[demoType];
                     const roll = Math.floor(Math.random() * 6) + 1;
-                    const total = roll + (hasDiscovery ? 3 : 0) + gameState.prep;
+                    const total = roll + gameState.prep;
                     const success = total >= 5;
 
                     if (success) {
                         gameState[demoType.toLowerCase()] = Math.max(-5, Math.min(5, gameState[demoType.toLowerCase()] + 2));
                         gameState.experience += 10;
                         gameState.demosDelivered++;
-                        updateEvent("Demo SUCCESS!", `Roll: ${roll}${hasDiscovery ? ' (+3 Discovery)' : ''} (+${gameState.prep} Prep). +10 EXP, +2 ${demoType}`);
+                        updateEvent("Demo SUCCESS!", `Roll: ${roll} (+${gameState.prep} Prep). +10 EXP, +2 ${demoType}`);
                         AudioEngine.happyChord();
                     } else {
                         updateEvent("Demo Failure...", `Roll: ${roll} (+${gameState.prep} Prep). Technical issues or lack of prep. No skill gain.`);
@@ -858,7 +856,6 @@ function showCinematicCard(squareIdx) {
                     }
 
                     // Reset discovery state and consumed prep
-                    gameState.discoveryState[demoType] = false;
                     gameState.prep = 0;
                     updateUI();
                 }
