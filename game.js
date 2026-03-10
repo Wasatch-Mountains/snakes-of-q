@@ -206,7 +206,11 @@ let gameState = {
     usedCards: [],
     visibleCards: [],
     discoveryState: { 'CX': false, 'EX': false, 'MR': false },
-    placementLog: {} // Records { originalIdx: { finalIdx: N, type: 'lunch'|'coffee', icon: 'emoji' } }
+    placementLog: {}, // Records { originalIdx: { finalIdx: N, type: 'lunch'|'coffee', icon: 'emoji' } },
+    // End Game Stats
+    demosDelivered: 0,
+    lunchesEaten: 0,
+    coffeesDrunk: 0
 };
 
 const boardEl = document.getElementById('planner-board');
@@ -648,15 +652,64 @@ function checkGameState() {
         gameState.gameOver = true;
         AudioEngine.win();
         updateEvent("Weekend at Last!", "You survived the week with energy to spare!");
-        setTimeout(resetGamePrompt, 1000);
+        console.log("Game Over: Week Complete. Showing overlay in 500ms...");
+        setTimeout(showEndGameOverlay, 500);
     } else if (gameState.energy <= 0) {
         gameState.gameOver = true;
         AudioEngine.fail();
         updateEvent("Major Burnout!", "You ran out of juice before Friday happy hour.");
-        setTimeout(resetGamePrompt, 1000);
+        console.log("Game Over: Burnout. Showing overlay in 500ms...");
+        setTimeout(showEndGameOverlay, 500);
     } else if (!CONFIG.CARDS[pos]) {
         updateEvent("On Track", `You have ${gameState.energy} energy points remaining.`);
     }
+}
+
+function showEndGameOverlay() {
+    console.log("showEndGameOverlay() triggered");
+    const overlay = document.getElementById('end-game-overlay');
+    const title = document.getElementById('end-game-title');
+    const subtitle = document.getElementById('end-game-subtitle');
+
+    if (!overlay || !title || !subtitle) {
+        console.error("End game overlay elements not found!");
+        return;
+    }
+
+    if (gameState.energy <= 0) {
+        title.textContent = "MAJOR BURNOUT";
+        subtitle.textContent = "You didn't make it to Friday happy hour...";
+    } else {
+        title.textContent = "WEEK COMPLETE";
+        subtitle.textContent = "You survived the week at Qualtrics!";
+    }
+
+    const setStat = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+    };
+
+    setStat('stat-demos', gameState.demosDelivered || 0);
+    setStat('stat-xp', gameState.experience || 0);
+    setStat('stat-lunches', gameState.lunchesEaten || 0);
+    setStat('stat-coffees', gameState.coffeesDrunk || 0);
+    setStat('stat-energy', `${gameState.energy || 0}/${CONFIG.MAX_ENERGY}`);
+
+    // WLB Calculation: (Avg of Demos and Remaining Energy)
+    const demos = gameState.demosDelivered || 0;
+    const energy = gameState.energy || 0;
+    const wlbScore = Math.floor((demos * 20) + (energy * 2.5));
+
+    let wlbText = "Poor";
+    if (wlbScore > 80) wlbText = "Legendary";
+    else if (wlbScore > 60) wlbText = "Great";
+    else if (wlbScore > 40) wlbText = "Balanced";
+    else if (wlbScore > 20) wlbText = "Struggling";
+
+    setStat('stat-wlb', wlbText);
+
+    console.log("Removing 'hidden' from end-game-overlay");
+    overlay.classList.remove('hidden');
 }
 
 function showCinematicCard(squareIdx) {
@@ -741,9 +794,14 @@ function showCinematicCard(squareIdx) {
                     gameState.speed += cardData.speed;
                     if (cardData.speed > 0) {
                         updateEvent("Speed Up!", `Caffeinated! Gained ${cardData.speed} Speed.`);
+                        gameState.coffeesDrunk++;
                     } else {
                         updateEvent("Slowed Down!", `Meeting drained you! Lost ${Math.abs(cardData.speed)} Speed.`);
                     }
+                }
+
+                if (cardData.type === 'lunch') {
+                    gameState.lunchesEaten++;
                 }
 
                 // AI Session special celebration
@@ -791,6 +849,7 @@ function showCinematicCard(squareIdx) {
                     if (success) {
                         gameState[demoType.toLowerCase()] = Math.max(-5, Math.min(5, gameState[demoType.toLowerCase()] + 2));
                         gameState.experience += 10;
+                        gameState.demosDelivered++;
                         updateEvent("Demo SUCCESS!", `Roll: ${roll}${hasDiscovery ? ' (+3 Discovery)' : ''} (+${gameState.prep} Prep). +10 EXP, +2 ${demoType}`);
                         AudioEngine.happyChord();
                     } else {
@@ -1091,22 +1150,8 @@ if (debugStepBtn) {
 }
 
 function resetGamePrompt() {
-    if (confirm("Reset the planner for a new week?")) {
-        gameState = {
-            currentPos: 1,
-            energy: 15,
-            cx: 0,
-            ex: 0,
-            mr: 0,
-            isRolling: false,
-            isStartingUp: false,
-            gameOver: false,
-            usedCards: [],
-            visibleCards: []
-        };
-        populateBoard();
-        runStartupSequence();
-    }
+    console.log("Reloading page to restart game...");
+    window.location.reload();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
